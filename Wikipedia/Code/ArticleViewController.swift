@@ -8,7 +8,7 @@ protocol AltTextDelegate: AnyObject {
 }
 
 @objc(WMFArticleViewController)
-class ArticleViewController: ViewController, HintPresenting {
+class ArticleViewController: ViewController, HintPresenting, UIEditMenuInteractionDelegate {
     enum ViewState {
         case initial
         case loading
@@ -136,7 +136,7 @@ class ArticleViewController: ViewController, HintPresenting {
         let cacheController = dataStore.cacheController.articleCache
 
         self.articleURL = articleURL
-        self.articleLanguageCode = articleURL.wmf_languageCode ?? Locale.current.languageCode ?? "en"
+        self.articleLanguageCode = articleURL.wmf_languageCode ?? Locale.current.language.languageCode?.identifier ?? "en"
         self.article = article
         
         self.dataStore = dataStore
@@ -375,6 +375,9 @@ class ArticleViewController: ViewController, HintPresenting {
         if altTextExperimentViewModel == nil {
             setupToolbar() // setup toolbar needs to be after super.viewDidLoad because the superview owns the toolbar
         }
+        
+        let editMenuInteraction = UIEditMenuInteraction(delegate: self)
+        view.addInteraction(editMenuInteraction)
         
         loadWatchStatusAndUpdateToolbar()
         setupForStateRestorationIfNecessary()
@@ -620,7 +623,7 @@ class ArticleViewController: ViewController, HintPresenting {
     }
     
     private func imageDidSuccessfullyLoad() {
-        guard let altTextExperimentViewModel else {
+        guard altTextExperimentViewModel != nil else {
             return
         }
         

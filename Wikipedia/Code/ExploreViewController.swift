@@ -71,8 +71,12 @@ class ExploreViewController: ColumnarCollectionViewController, ExploreCardViewCo
             presentImageRecommendationsFeatureAnnouncementIfNeeded()
         }
         
-        if tabBarSnapshotImage == nil {
-            updateTabBarSnapshotImage()
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            tabBarSnapshotImage = nil
+        } else {
+            if tabBarSnapshotImage == nil {
+                updateTabBarSnapshotImage()
+            }
         }
     }
     
@@ -1293,10 +1297,10 @@ extension ExploreViewController: WMFImageRecommendationsDelegate {
             return
         }
         
-        guard lastRecommendation.imageWikitext != nil,
-              lastRecommendation.fullArticleWikitextWithImage != nil,
-              lastRecommendation.lastRevisionID != nil,
-              lastRecommendation.localizedFileTitle  != nil else {
+        guard let _ = lastRecommendation.imageWikitext,
+              let _ = lastRecommendation.fullArticleWikitextWithImage,
+            let _ = lastRecommendation.lastRevisionID,
+            let _ = lastRecommendation.localizedFileTitle else {
             return
         }
 
