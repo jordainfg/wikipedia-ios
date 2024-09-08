@@ -37,6 +37,8 @@ extern NSString *const WMFLanguageVariantAlertsLibraryVersion; // NSNumber
 
 - (void)showImportedReadingList:(ReadingList *)readingList;
 
+- (void)showPlaceWithCoordinates:(double *)latitude :(double)longitude;
+
 /// Returning WMFArticleViewController (which is ArticleViewController in Swift) makes this not work from Swift
 - (void)swiftCompatibleShowArticleWithURL:(NSURL *)articleURL animated:(BOOL)animated completion:(nonnull dispatch_block_t)completion;
 

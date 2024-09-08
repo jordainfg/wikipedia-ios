@@ -1297,16 +1297,45 @@ NSString *const WMFLanguageVariantAlertsLibraryVersion = @"WMFLanguageVariantAle
         } break;
         default: {
             NSURL *linkURL = [activity wmf_linkURL];
-            // Ensure incoming link is fetched in user's preferred variant if applicable
-            if (!linkURL.wmf_languageVariantCode) {
-                linkURL.wmf_languageVariantCode = [self.dataStore.languageLinkController preferredLanguageVariantCodeForLanguageCode:linkURL.wmf_languageCode];
-            }
-            if (!linkURL) {
+
+            // Extract latitude and longitude query parameters
+            NSString *latitudeString = [linkURL wmf_valueForQueryKey:@"latitude"];
+            NSString *longitudeString = [linkURL wmf_valueForQueryKey:@"longitude"];
+
+            /// If both latitude and longitude exist, perform `showPlaceWithCoordinatesWithLatitude`
+            if (latitudeString && longitudeString) {
+                [self dismissPresentedViewControllers];
+                [self setSelectedIndex:WMFAppTabTypePlaces];
+                [self.currentTabNavigationController popToRootViewControllerAnimated:animated];
+                
+                // Convert the latitude and longitude from NSString to double
+                double latitude = [latitudeString doubleValue];
+                double longitude = [longitudeString doubleValue];
+
+                NSURL *articleURL = activity.wmf_linkURL;
+                if (articleURL) {
+                    NSLog(@"Custom action: Latitude: %f, Longitude: %f", latitude, longitude);
+                    [[self placesViewController] showPlaceWithCoordinatesWithLatitude:latitude longitude:longitude];
+                }
+
                 done();
-                return NO;
+                return YES;
+            } else {
+                // If no latitude and longitude, continue with original code
+                // Ensure incoming link is fetched in user's preferred variant if applicable
+                if (!linkURL.wmf_languageVariantCode) {
+                    linkURL.wmf_languageVariantCode = [self.dataStore.languageLinkController preferredLanguageVariantCodeForLanguageCode:linkURL.wmf_languageCode];
+                }
+
+                if (!linkURL) {
+                    done();
+                    return NO;
+                }
+
+                // Original code continues here
+                [NSUserActivity wmf_makeActivityActive:activity];
+                return [self.router routeURL:linkURL userInfo:activity.userInfo completion:done];
             }
-            [NSUserActivity wmf_makeActivityActive:activity];
-            return [self.router routeURL:linkURL userInfo:activity.userInfo completion:done];
         }
     }
     done();
@@ -1384,6 +1413,10 @@ NSString *const WMFLanguageVariantAlertsLibraryVersion = @"WMFLanguageVariantAle
     [nc pushViewController:articleVC
                   animated:YES];
     return articleVC;
+}
+
+- (void)showPlaceWithCoordinates:(double *)latitude :(double)longitude {
+    [self showPlaceWithCoordinates:latitude :longitude];
 }
 
 - (void)swiftCompatibleShowArticleWithURL:(NSURL *)articleURL animated:(BOOL)animated completion:(nonnull dispatch_block_t)completion {
