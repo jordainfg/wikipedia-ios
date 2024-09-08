@@ -141,6 +141,12 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
         return mapListToggle
     }()
     
+    // MARK: - Coordinate deeplinking
+    /// If the view has not been loaded yet (e.g., during a cold start), `mapView` is not initialized.
+    /// We store the coordinates in` pendingCoordinate`s and apply them after the view has preformed all the necesarry work
+    /// This ensures the map is properly initialized before trying to center it on the coordinates.
+    var pendingDeepLinkLocation: CLLocation?
+    
     override func viewDidLoad() {
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: WMFLocalizedString("places-filter-button-title", value: "Filter", comment: "Title for button that allows users to filter places"), style: .plain, target: self, action: #selector(filterButtonPressed(_:)))
         navigationBar.addUnderNavigationBarView(searchBarContainerView)
@@ -1940,6 +1946,17 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
         recenterOnUserLocation(self)
     }
     
+    @objc public func showPlaceWithCoordinates(latitude: Double, longitude: Double) {
+        guard let mapView = mapView else {
+            pendingDeepLinkLocation = CLLocation(latitude: latitude, longitude: longitude)
+            return
+        }
+
+        let location = CLLocation(latitude: latitude, longitude: longitude)
+
+        zoomAndPanMapView(toLocation: location)
+    }
+
     @objc public func showArticleURL(_ articleURL: URL) {
         guard let article = dataStore.fetchArticle(with: articleURL), let title = articleURL.wmf_title,
             view != nil else { // force view instantiation
@@ -2129,8 +2146,15 @@ class PlacesViewController: ViewController, UISearchBarDelegate, ArticlePopoverV
     }
     
     func zoomAndPanMapView(toLocation location: CLLocation) {
-        let region = [location.coordinate].wmf_boundingRegion(with: 10000)
+        let region: MKCoordinateRegion = if let pendingDeepLinkLocation {
+             [pendingDeepLinkLocation.coordinate].wmf_boundingRegion(with: 10000)
+        } else {
+             [location.coordinate].wmf_boundingRegion(with: 10000)
+        }
+        pendingDeepLinkLocation = nil
+        
         mapRegion = region
+        
         if let searchRegion = currentSearchRegion, isDistanceSignificant(betweenRegion: searchRegion, andRegion: region) {
             performDefaultSearch(withRegion: mapRegion)
         } else {
